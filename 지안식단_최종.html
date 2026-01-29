@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지안이 방학도시락 식단표</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        body { background-color: #f8fafc; font-family: 'Pretendard', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .active-tab { background-color: #f97316 !important; color: white !important; transform: scale(1.05); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const initialData = {
+            "월": { morning: "방울토마토, 슈크림 붕어빵", lunch: "언양식불고기볶음밥+치즈, 군만두", dinner: "생선구이, 메추리알조림, 감자스팸조림", prepNight: "밥 확인", prepMorning: "볶음밥 데우기", grocery: "방울토마토, 슈크림붕어빵, 생선, 메추리알" },
+            "화": { morning: "삶은감자, 우유", lunch: "제육볶음, 메추리알조림, 감자스팸조림", dinner: "떡갈비/떡볶이", prepNight: "메추리알 확인", prepMorning: "제육 볶기", grocery: "감자, 제육고기, 떡갈비" },
+            "수": { morning: "소금빵, 우유", lunch: "어묵국, 돈까스/소스, 팽이불닭, 방울토마토", dinner: "카레라이스(닭가슴살,감자,양파) 계란후라이", prepNight: "밥 확인, 방토 닦아두기", prepMorning: "돈까스 에어프라이, 어묵국 끓이기", grocery: "소금빵, 어묵, 돈까스, 팽이버섯, 닭가슴살" },
+            "목": { morning: "찹쌀떡, 딸기", lunch: "미역국, 돼지갈비, 계란찜", dinner: "찜닭(당면불리기, 닭가슴살, 감자, 양파)", prepNight: "딸기 씻어두기", prepMorning: "갈비 굽기, 계란찜 렌지", grocery: "찹쌀떡, 딸기, 돼지갈비" },
+            "금": { morning: "호빵, 우유", lunch: "훈제오리, 비엔나케첩볶음, 월남쌈(빼두기)", dinner: "돼지국밥", prepNight: "훈제오리 확인", prepMorning: "호빵 찌기, 오리 굽기", grocery: "호빵, 훈제오리, 비엔나소시지" }
+        };
+
+        function App() {
+            const [weeklyMenu, setWeeklyMenu] = useState(initialData);
+            const [selectedDay, setSelectedDay] = useState("월");
+            const [archives, setArchives] = useState({});
+            const [archiveInput, setArchiveInput] = useState("");
+            const [currentName, setCurrentName] = useState("1월 4주차 식단");
+
+            useEffect(() => {
+                const savedCurr = localStorage.getItem('jian_diet_v35_curr');
+                const savedArch = localStorage.getItem('jian_diet_v35_arch');
+                const savedName = localStorage.getItem('jian_diet_v35_name');
+                if (savedCurr) setWeeklyMenu(JSON.parse(savedCurr));
+                if (savedArch) setArchives(JSON.parse(savedArch));
+                if (savedName) setCurrentName(savedName);
+            }, []);
+
+            useEffect(() => {
+                localStorage.setItem('jian_diet_v35_curr', JSON.stringify(weeklyMenu));
+                localStorage.setItem('jian_diet_v35_name', currentName);
+            }, [weeklyMenu, currentName]);
+
+            const update = (field, val) => setWeeklyMenu({ ...weeklyMenu, [selectedDay]: { ...weeklyMenu[selectedDay], [field]: val } });
+
+            const save = () => {
+                if (!archiveInput) return alert("식단 이름을 입력하세요!");
+                const newArch = { ...archives, [archiveInput]: weeklyMenu };
+                setArchives(newArch);
+                setCurrentName(archiveInput);
+                localStorage.setItem('jian_diet_v35_arch', JSON.stringify(newArch));
+                setArchiveInput("");
+                alert("저장되었습니다.");
+            };
+
+            const load = (name) => {
+                if (confirm(`'${name}' 식단을 불러올까요?`)) {
+                    setWeeklyMenu(archives[name]);
+                    setCurrentName(name);
+                }
+            };
+
+            const getFinalShoppingList = () => {
+                const all = Object.values(weeklyMenu).map(d => d.grocery || "").join(', ');
+                return [...new Set(all.split(/[ ,/]+/).filter(i => i.length >= 2))];
+            };
+
+            const isWarm = (t) => ['국', '찌개', '갈비', '돈까스', '불고기', '오리', '제육'].some(k => t?.includes(k));
+
+            return (
+                <div className="max-w-md mx-auto min-h-screen bg-slate-50 pb-20 shadow-xl border-x border-slate-100">
+                    <header className="bg-white p-6 shadow-sm mb-4 sticky top-0 z-20 border-b border-slate-100">
+                        <h1 className="text-xl font-black text-slate-800 tracking-tight">🍱 지안이 방학도시락 식단표</h1>
+                        <div className="mt-2 flex items-center bg-orange-50 px-3 py-1.5 rounded-full w-fit border border-orange-100">
+                            <span className="text-[9px] font-black text-orange-500 mr-2 uppercase tracking-tighter">Current Plan</span>
+                            <span className="text-xs font-bold text-slate-700">{currentName}</span>
+                        </div>
+                    </header>
+
+                    {/* 히스토리 */}
+                    {Object.keys(archives).length > 0 && (
+                        <div className="px-4 mb-4">
+                            <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
+                                <p className="text-[10px] font-bold text-slate-400 mb-2 px-1 uppercase tracking-widest">Saved Archives</p>
+                                <div className="flex flex-wrap gap-2 overflow-x-auto pb-1">
+                                    {Object.keys(archives).map(name => (
+                                        <button key={name} onClick={() => load(name)} 
+                                                className={`text-[10px] whitespace-nowrap px-3 py-1.5 rounded-xl border transition-all ${currentName === name ? 'bg-slate-800 text-white border-slate-800' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
+                                            {name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 요일 선택 */}
+                    <div className="flex px-4 gap-1.5 mb-5">
+                        {["월", "화", "수", "목", "금"].map(day => (
+                            <button key={day} onClick={() => setSelectedDay(day)}
+                                className={`flex-1 py-3.5 text-sm font-black rounded-2xl transition-all duration-300 shadow-sm ${selectedDay === day ? 'active-tab' : 'bg-white text-slate-300'}`}>
+                                {day}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="px-4 space-y-4">
+                        {/* 메뉴 입력 카드 */}
+                        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-50 space-y-4">
+                            <h2 className="font-black text-lg text-slate-800 border-b border-slate-50 pb-2 mb-2">{selectedDay}요일 식단</h2>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 mb-1 block uppercase">☀️ Morning</label>
+                                    <input className="w-full p-3 bg-slate-50 rounded-xl outline-none focus:ring-2 focus:ring-orange-100 border-none text-slate-700 text-sm font-medium" 
+                                           value={weeklyMenu[selectedDay].morning} onChange={(e) => update('morning', e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 mb-1 flex justify-between uppercase">
+                                        <span>🍱 Lunch Box</span>
+                                        {isWarm(weeklyMenu[selectedDay].lunch) && <span className="text-[9px] text-blue-500 font-black bg-blue-50 px-2 py-0.5 rounded-lg animate-pulse">보온 필수</span>}
+                                    </label>
+                                    <input className="w-full p-3 bg-slate-50 rounded-xl outline-none focus:ring-2 focus:ring-orange-100 border-none text-slate-700 text-sm font-medium" 
+                                           value={weeklyMenu[selectedDay].lunch} onChange={(e) => update('lunch', e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 mb-1 block uppercase">🌙 Dinner</label>
+                                    <input className="w-full p-3 bg-slate-50 rounded-xl outline-none focus:ring-2 focus:ring-orange-100 border-none text-slate-700 text-sm font-medium" 
+                                           value={weeklyMenu[selectedDay].dinner} onChange={(e) => update('dinner', e.target.value)} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ✅ [추가] 이번 요일 장보기 입력 칸 */}
+                        <div className="bg-orange-50 rounded-3xl p-5 border border-orange-100 shadow-sm">
+                            <label className="text-[10px] font-black text-orange-400 mb-2 block uppercase tracking-widest italic">
+                                <i className="fas fa-cart-plus mr-1"></i> 장볼 것 (이 요일의 필요 재료)
+                            </label>
+                            <input className="w-full p-3 bg-white rounded-xl outline-none focus:ring-2 focus:ring-orange-200 border-none text-slate-700 text-xs font-bold shadow-inner" 
+                                   value={weeklyMenu[selectedDay].grocery || ""} onChange={(e) => update('grocery', e.target.value)} 
+                                   placeholder="예: 돈까스, 어묵, 딸기 (콤마로 구분)" />
+                        </div>
+
+                        {/* 준비사항 섹션 */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-white p-5 rounded-3xl shadow-sm border-t-4 border-indigo-400">
+                                <p className="text-[10px] font-bold text-indigo-400 mb-2 uppercase tracking-tighter">Night Prep</p>
+                                <textarea className="w-full text-[11px] h-14 bg-transparent resize-none focus:outline-none text-slate-600 font-medium leading-relaxed" 
+                                          value={weeklyMenu[selectedDay].prepNight} onChange={(e) => update('prepNight', e.target.value)} />
+                            </div>
+                            <div className="bg-white p-5 rounded-3xl shadow-sm border-t-4 border-yellow-400">
+                                <p className="text-[10px] font-bold text-yellow-500 mb-2 uppercase tracking-tighter">Morning Cook</p>
+                                <textarea className="w-full text-[11px] h-14 bg-transparent resize-none focus:outline-none text-slate-600 font-medium leading-relaxed" 
+                                          value={weeklyMenu[selectedDay].prepMorning} onChange={(e) => update('prepMorning', e.target.value)} />
+                            </div>
+                        </div>
+
+                        {/* ✅ 주간 통합 장보기 리스트 (직접 입력한 것만 모음) */}
+                        <div className="bg-slate-900 text-white p-6 rounded-[2.5rem] shadow-xl border-b-8 border-orange-500">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-sm font-black flex items-center italic tracking-widest uppercase text-orange-400">
+                                    <i className="fas fa-shopping-basket mr-2"></i> Weekly Shopping List
+                                </h3>
+                            </div>
+                            <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
+                                {getFinalShoppingList().length > 0 ? getFinalShoppingList().map((item, idx) => (
+                                    <span key={idx} className="text-[11px] bg-slate-800 text-orange-200 px-3 py-1.5 rounded-xl border border-slate-700 font-bold">
+                                        {item}
+                                    </span>
+                                )) : <p className="text-[10px] text-slate-600 italic">위 주황색 칸에 장볼 재료를 입력해 주세요.</p>}
+                            </div>
+                        </div>
+
+                        {/* 저장 컨트롤 */}
+                        <div className="flex gap-2 bg-slate-200 p-2 rounded-2xl">
+                            <input className="flex-1 p-3 text-xs bg-white rounded-xl outline-none" 
+                                   placeholder="식단 이름 저장 (예: 2월 2주)" value={archiveInput} onChange={(e) => setArchiveInput(e.target.value)} />
+                            <button onClick={save} className="bg-slate-800 text-white px-6 py-2 rounded-xl text-xs font-black shadow-lg">저장</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
